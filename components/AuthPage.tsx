@@ -1,14 +1,16 @@
 
 import React from 'react';
-import { LogIn, Cloud, ShieldCheck, Github, Settings } from 'lucide-react';
+import { LogIn, Cloud, ShieldCheck, Github, Settings, Smartphone } from 'lucide-react';
 
 interface AuthPageProps {
   onLogin: () => void;
   isConfigured: boolean;
   onOpenSetup: () => void;
+  canInstall?: boolean;
+  onInstall?: () => void;
 }
 
-const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup }) => {
+const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup, canInstall, onInstall }) => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-indigo-700 via-indigo-800 to-slate-900 text-white relative">
       <button 
@@ -29,7 +31,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup 
         </div>
       </div>
 
-      <div className="w-full space-y-6 max-w-xs">
+      <div className="w-full space-y-4 max-w-xs">
         <div className="bg-white/5 border border-white/10 p-5 rounded-3xl backdrop-blur-sm">
           <p className="text-center text-sm text-indigo-100 mb-6 leading-relaxed">
             Your photos are stored directly in your personal <strong>Google Drive</strong>. Private, secure, and permanent.
@@ -49,6 +51,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup 
             </p>
           )}
         </div>
+
+        {canInstall && (
+          <button 
+            onClick={onInstall}
+            className="w-full flex items-center justify-center gap-2 bg-indigo-500/20 border border-indigo-400/30 text-white py-4 px-6 rounded-2xl font-black hover:bg-indigo-500/30 transition-all active:scale-95"
+          >
+            <Smartphone className="w-5 h-5" />
+            <span className="text-xs uppercase tracking-widest">Install App</span>
+          </button>
+        )}
       </div>
 
       <footer className="absolute bottom-10 flex flex-col items-center gap-4">
@@ -57,7 +69,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup 
         </p>
         <div className="flex items-center gap-2 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">
           <Github className="w-4 h-4" />
-          v2.5 AUTOMATED SETUP
+          v2.6 NATIVE INSTALL
         </div>
       </footer>
     </div>

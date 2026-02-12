@@ -18,12 +18,22 @@ const App: React.FC = () => {
   const [tokenClient, setTokenClient] = useState<any>(null);
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
   // BYOP (Bring Your Own Project) States
   const [clientId, setClientId] = useState<string>(localStorage.getItem('sm_client_id') || "");
   const [showSetup, setShowSetup] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
+    // Listen for PWA install prompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     const checkScript = setInterval(() => {
       if ((window as any).google?.accounts?.oauth2) {
         setIsScriptLoaded(true);
@@ -31,7 +41,11 @@ const App: React.FC = () => {
         if (clientId) initGoogleClient(clientId);
       }
     }, 100);
-    return () => clearInterval(checkScript);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      clearInterval(checkScript);
+    };
   }, [clientId]);
 
   const initGoogleClient = (id: string) => {
@@ -141,6 +155,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   const handleConsentAllow = () => {
     if (tokenClient) {
       tokenClient.requestAccessToken();
@@ -237,7 +260,15 @@ const App: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col relative overflow-hidden">
-      {currentPage === Page.AUTH && <AuthPage onLogin={handleStartLogin} isConfigured={!!clientId} onOpenSetup={() => setShowSetup(true)} />}
+      {currentPage === Page.AUTH && (
+        <AuthPage 
+          onLogin={handleStartLogin} 
+          isConfigured={!!clientId} 
+          onOpenSetup={() => setShowSetup(true)}
+          canInstall={!!deferredPrompt}
+          onInstall={handleInstallApp}
+        />
+      )}
       
       {currentPage === Page.GROUP_SELECTION && user && (
         <GroupSelectionPage 
