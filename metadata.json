@@ -1,0 +1,7 @@
+{
+  "name": "SharedMoments",
+  "description": "Collaborative memories stored in your private Google Drive. Access your local device photos and cloud files in one unified sharing app.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
