@@ -47,9 +47,21 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registered', reg))
-                    .catch(err => console.error('Service Worker failed', err));
+                try {
+                    // Explicitly calculate the absolute URL for the service worker
+                    // based on the current frame's origin to avoid "ai.studio" mismatch errors.
+                    const swUrl = new URL('./sw.js', window.location.href).href;
+                    
+                    navigator.serviceWorker.register(swUrl)
+                        .then(reg => console.log('Service Worker registered at:', swUrl))
+                        .catch(err => {
+                            // Service workers are often blocked in preview frames or non-HTTPS environments.
+                            // We catch this to prevent console noise/app failure.
+                            console.warn('Service Worker registration skipped/failed (Normal in some preview environments):', err.message);
+                        });
+                } catch (e) {
+                    console.warn('Service Worker setup skipped:', e);
+                }
             });
         }
     </script>
