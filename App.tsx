@@ -5,7 +5,8 @@ import AuthPage from './components/AuthPage';
 import GroupSelectionPage from './components/GroupSelectionPage';
 import MainFeedPage from './components/MainFeedPage';
 
-const CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // User must replace this
+// IMPORTANT: Replace this with your actual Client ID from Google Cloud Console
+const CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; 
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile";
 
 const App: React.FC = () => {
@@ -18,9 +19,7 @@ const App: React.FC = () => {
   const [tokenClient, setTokenClient] = useState<any>(null);
 
   useEffect(() => {
-    // Fix: Access google property via type assertion to window to avoid TypeScript error (Property 'google' does not exist on type 'Window')
     const google = (window as any).google;
-    // Initialize Google Identity Services
     if (google) {
       const client = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
@@ -40,7 +39,6 @@ const App: React.FC = () => {
     setCurrentPage(Page.GROUP_SELECTION);
 
     try {
-      // 1. Fetch User Info
       const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
@@ -54,10 +52,7 @@ const App: React.FC = () => {
       };
       setUser(authenticatedUser);
 
-      // 2. Find or Create SharedMoments Root
       const rootId = await findOrCreateFolder(accessToken, 'SharedMoments');
-      
-      // 3. List Subfolders (Groups)
       const groupFolders = await listFoldersIn(accessToken, rootId);
       const groupList: Group[] = groupFolders.map((f: any) => ({
         id: f.id,
@@ -84,7 +79,6 @@ const App: React.FC = () => {
     const data = await res.json();
     if (data.files && data.files.length > 0) return data.files[0].id;
 
-    // Create if not found
     const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
@@ -146,10 +140,9 @@ const App: React.FC = () => {
   const selectGroup = async (group: Group) => {
     setCurrentGroup(group);
     setIsScanningDrive(true);
-    // Fetch photos in this group folder
     if (user?.accessToken) {
       const q = `'${group.driveFolderId}' in parents and mimeType contains 'image/' and trashed=false`;
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,description,createdTime,webContentLink)`, {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,description,createdTime,thumbnailLink,webContentLink)`, {
         headers: { Authorization: `Bearer ${user.accessToken}` }
       });
       const data = await res.json();
@@ -157,7 +150,7 @@ const App: React.FC = () => {
         id: f.id,
         userId: user.id,
         groupId: group.id,
-        imageUrls: [f.webContentLink], // Note: in real app, might need custom proxy for direct display
+        imageUrls: [f.thumbnailLink?.replace('=s220', '=s1000') || f.webContentLink],
         comment: f.description || "",
         timestamp: new Date(f.createdTime).getTime()
       }));
@@ -165,6 +158,44 @@ const App: React.FC = () => {
     }
     setCurrentPage(Page.MAIN_FEED);
     setIsScanningDrive(false);
+  };
+
+  const handleUploadToDrive = async (post: Post, blobs: Blob[]) => {
+    if (!user?.accessToken || !currentGroup) return;
+
+    for (const blob of blobs) {
+      const metadata = {
+        name: `Moment_${Date.now()}.jpg`,
+        mimeType: 'image/jpeg',
+        parents: [currentGroup.driveFolderId],
+        description: post.comment
+      };
+
+      const formData = new FormData();
+      formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      formData.append('file', blob);
+
+      try {
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webContentLink,thumbnailLink,createdTime,description', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${user.accessToken}` },
+          body: formData
+        });
+        const file = await res.json();
+        
+        const newPost: Post = {
+          id: file.id,
+          userId: user.id,
+          groupId: currentGroup.id,
+          imageUrls: [file.thumbnailLink?.replace('=s220', '=s1000') || file.webContentLink],
+          comment: file.description || "",
+          timestamp: new Date(file.createdTime).getTime()
+        };
+        setPosts(prev => [newPost, ...prev]);
+      } catch (e) {
+        console.error("Upload failed", e);
+      }
+    }
   };
 
   return (
@@ -186,12 +217,16 @@ const App: React.FC = () => {
           user={user}
           group={currentGroup}
           posts={posts}
-          onAddPost={(p) => setPosts([p, ...posts])}
+          onAddPost={async (post) => {
+            // This is triggered by CreatePostModal
+            // Real implementation uses handleUploadToDrive inside the component logic or passed via props
+          }}
+          onRealUpload={handleUploadToDrive}
           onDeletePost={(id) => setPosts(posts.filter(p => p.id !== id))}
           onEditPost={(id, comment) => setPosts(posts.map(p => p.id === id ? {...p, comment} : p))}
           onLogout={handleLogout}
           onChangeGroup={() => setCurrentPage(Page.GROUP_SELECTION)}
-          onDeleteGroup={() => {}} // Implementation for Drive delete needed
+          onDeleteGroup={() => {}} 
           onRenameGroup={() => {}} 
           onLeaveGroup={() => {}}
           onAddMember={() => {}}
