@@ -66,8 +66,8 @@ const MainFeedPage: React.FC<MainFeedPageProps> = (props) => {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
         {groupedPosts.length > 0 ? (
           groupedPosts.map(([month, monthPosts]) => (
-            <div key={month} className="mb-2">
-              <div className="px-6 py-4 sticky top-[56px] bg-white/95 z-20 backdrop-blur-md border-b border-gray-100 flex items-center gap-2">
+            <div key={month} className="mb-4">
+              <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex items-center gap-2">
                 <div className="w-1 h-3 bg-indigo-600 rounded-full" />
                 <h2 className="text-[10px] font-black text-gray-800 uppercase tracking-[0.2em]">{month}</h2>
               </div>
