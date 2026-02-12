@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { LogIn, Cloud, ShieldCheck, Github, Settings, Smartphone } from 'lucide-react';
+import React, { useState } from 'react';
+import { LogIn, Cloud, ShieldCheck, Github, Settings, Smartphone, MoreVertical, PlusSquare, Info, ChevronRight } from 'lucide-react';
 
 interface AuthPageProps {
   onLogin: () => void;
@@ -11,16 +11,22 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup, canInstall, onInstall }) => {
+  const [showHelp, setShowHelp] = useState(false);
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-indigo-700 via-indigo-800 to-slate-900 text-white relative">
+    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-indigo-700 via-indigo-800 to-slate-900 text-white relative overflow-hidden">
+      {/* Background Decoration */}
+      <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-blue-500/10 rounded-full blur-3xl"></div>
+
       <button 
         onClick={onOpenSetup}
-        className="absolute top-10 right-10 p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all active:scale-90"
+        className="absolute top-10 right-10 p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all active:scale-90 z-20"
       >
         <Settings className="w-5 h-5" />
       </button>
 
-      <div className="mb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="mb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700 z-10">
         <div className="w-24 h-24 bg-white/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl backdrop-blur-2xl border border-white/20">
           <Cloud className="w-12 h-12 text-white" />
         </div>
@@ -31,15 +37,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup,
         </div>
       </div>
 
-      <div className="w-full space-y-4 max-w-xs">
-        <div className="bg-white/5 border border-white/10 p-5 rounded-3xl backdrop-blur-sm">
-          <p className="text-center text-sm text-indigo-100 mb-6 leading-relaxed">
-            Your photos are stored directly in your personal <strong>Google Drive</strong>. Private, secure, and permanent.
+      <div className="w-full space-y-4 max-w-xs z-10">
+        <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] backdrop-blur-sm">
+          <p className="text-center text-sm text-indigo-100 mb-8 leading-relaxed font-medium">
+            Your photos stay in your personal <span className="text-white font-bold">Google Drive</span>. No middleman, just memories.
           </p>
           
           <button 
             onClick={onLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white text-indigo-600 py-4 px-6 rounded-2xl font-black shadow-xl hover:scale-105 active:scale-95 transition-all mb-4"
+            className="w-full flex items-center justify-center gap-3 bg-white text-indigo-600 py-4.5 px-6 rounded-2xl font-black shadow-xl hover:scale-[1.02] active:scale-95 transition-all mb-4 text-sm"
           >
             <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-5 h-5" alt="G" />
             {isConfigured ? "Sign in with Google" : "Setup Google Project"}
@@ -52,26 +58,66 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup,
           )}
         </div>
 
-        {canInstall && (
+        {canInstall ? (
           <button 
             onClick={onInstall}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-500/20 border border-indigo-400/30 text-white py-4 px-6 rounded-2xl font-black hover:bg-indigo-500/30 transition-all active:scale-95"
+            className="w-full flex items-center justify-center gap-2 bg-indigo-500 text-white py-4 px-6 rounded-2xl font-black shadow-lg shadow-indigo-900/20 hover:bg-indigo-400 transition-all active:scale-95"
           >
             <Smartphone className="w-5 h-5" />
-            <span className="text-xs uppercase tracking-widest">Install App</span>
+            <span className="text-xs uppercase tracking-widest">Install as App</span>
+          </button>
+        ) : (
+          <button 
+            onClick={() => setShowHelp(true)}
+            className="w-full flex items-center justify-center gap-2 text-indigo-200/60 py-2 font-bold hover:text-white transition-colors"
+          >
+            <Info className="w-4 h-4" />
+            <span className="text-[10px] uppercase tracking-widest">How to install on Android?</span>
           </button>
         )}
       </div>
 
-      <footer className="absolute bottom-10 flex flex-col items-center gap-4">
-        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest opacity-50">
-          Privacy First: Drive-to-Device Encryption
-        </p>
+      <footer className="absolute bottom-10 flex flex-col items-center gap-4 z-10">
         <div className="flex items-center gap-2 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">
           <Github className="w-4 h-4" />
-          v2.6 NATIVE INSTALL
+          Production v2.8
         </div>
       </footer>
+
+      {/* Manual Install Help Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl text-slate-900 animate-in zoom-in-95 duration-200">
+            <div className="p-8 bg-indigo-600 text-white">
+              <h3 className="text-2xl font-black tracking-tighter">Manual Install</h3>
+              <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest mt-1">For Android Chrome</p>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="flex gap-4 items-center">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                  <MoreVertical className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-sm font-bold text-slate-600">Tap the <span className="text-indigo-600">Three Dots</span> in the top right of Chrome.</p>
+              </div>
+
+              <div className="flex gap-4 items-center">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                  <PlusSquare className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-sm font-bold text-slate-600">Select <span className="text-indigo-600">"Add to Home screen"</span> or <span className="text-indigo-600">"Install app"</span>.</p>
+              </div>
+
+              <button 
+                onClick={() => setShowHelp(false)}
+                className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest mt-4"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
