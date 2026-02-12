@@ -2,20 +2,33 @@
 {
   "short_name": "SharedMoments",
   "name": "SharedMoments: Drive Memories",
+  "description": "Collaborative memories stored in your private Google Drive.",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2875/2875433.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2875/2875433.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
+  "orientation": "portrait",
   "theme_color": "#4f46e5",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+  "categories": ["photo", "social", "productivity"],
+  "screenshots": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2875/2875433.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "label": "Sharing your best moments with Google Drive"
+    }
+  ]
 }

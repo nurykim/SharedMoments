@@ -4,7 +4,7 @@ import { Page, User, Group, Post } from './types';
 import AuthPage from './components/AuthPage';
 import GroupSelectionPage from './components/GroupSelectionPage';
 import MainFeedPage from './components/MainFeedPage';
-import { ShieldCheck, X, Cloud, ExternalLink, Info, AlertCircle } from 'lucide-react';
+import { ShieldCheck, X, Cloud, ExternalLink, Info, AlertCircle, Loader2 } from 'lucide-react';
 
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile";
 
@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isScanningDrive, setIsScanningDrive] = useState(false);
   const [tokenClient, setTokenClient] = useState<any>(null);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   
   // BYOP (Bring Your Own Project) States
   const [clientId, setClientId] = useState<string>(localStorage.getItem('sm_client_id') || "");
@@ -23,14 +24,19 @@ const App: React.FC = () => {
   const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
-    if (clientId) {
-      initGoogleClient(clientId);
-    }
+    const checkScript = setInterval(() => {
+      if ((window as any).google?.accounts?.oauth2) {
+        setIsScriptLoaded(true);
+        clearInterval(checkScript);
+        if (clientId) initGoogleClient(clientId);
+      }
+    }, 100);
+    return () => clearInterval(checkScript);
   }, [clientId]);
 
   const initGoogleClient = (id: string) => {
     const google = (window as any).google;
-    if (google) {
+    if (google?.accounts?.oauth2) {
       try {
         const client = google.accounts.oauth2.initTokenClient({
           client_id: id,
@@ -83,7 +89,7 @@ const App: React.FC = () => {
       setGroups(groupList);
     } catch (error) {
       console.error("Drive Sync Error:", error);
-      alert("Auth failed. Check if your Client ID is correct and has Drive API enabled.");
+      alert("Auth failed. Check your Client ID settings (Authorized JavaScript Origins).");
       setCurrentPage(Page.AUTH);
     } finally {
       setIsScanningDrive(false);
@@ -127,6 +133,10 @@ const App: React.FC = () => {
     if (!clientId) {
       setShowSetup(true);
     } else {
+      if (!isScriptLoaded) {
+        alert("Google services are still loading. Please wait a second...");
+        return;
+      }
       setShowConsent(true);
     }
   };
@@ -260,7 +270,6 @@ const App: React.FC = () => {
 
       {/* --- OVERLAYS --- */}
 
-      {/* 1. Project Setup Box */}
       {showSetup && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
@@ -307,7 +316,7 @@ const App: React.FC = () => {
               <div className="bg-amber-50 p-4 rounded-2xl flex gap-3 items-start border border-amber-100">
                 <Info className="w-4 h-4 text-amber-600 shrink-0" />
                 <p className="text-[10px] font-bold text-amber-800 leading-relaxed uppercase tracking-tight">
-                  This ID is stored only on your phone. It allows SharedMoments to talk directly to YOUR private Drive.
+                  This ID is stored locally. It connects the app to YOUR private Drive folder.
                 </p>
               </div>
             </div>
@@ -315,7 +324,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Permission Consent Box (As Requested) */}
       {showConsent && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="bg-white rounded-[2rem] w-full max-w-sm p-10 text-center shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
@@ -326,7 +334,7 @@ const App: React.FC = () => {
             <h2 className="text-2xl font-black text-gray-900 tracking-tighter mb-4">Allow Drive Access?</h2>
             
             <p className="text-gray-500 text-sm font-medium mb-10 leading-relaxed">
-              SharedMoments needs permission to create and manage the <span className="text-indigo-600 font-black">SharedMoments</span> folder in your Google Drive. We never see your other files.
+              SharedMoments will manage a <span className="text-indigo-600 font-black">SharedMoments</span> folder in your Google Drive.
             </p>
 
             <div className="flex flex-col gap-3">
@@ -337,11 +345,7 @@ const App: React.FC = () => {
                 Allow & Sync
               </button>
               <button 
-                onClick={() => {
-                  setShowConsent(false);
-                  // "Ignore will bring back the user to the first login screen"
-                  // Handled by just closing the modal as we are already on AUTH page
-                }}
+                onClick={() => setShowConsent(false)}
                 className="w-full py-4 text-gray-400 font-bold uppercase text-[10px] tracking-widest hover:text-gray-900 transition-colors"
               >
                 Ignore
