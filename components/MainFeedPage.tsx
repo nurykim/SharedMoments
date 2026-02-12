@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { User, Group, Post } from '../types';
-import { Settings, Users, Plus, X, Trash2, Edit3, LogOut, UserMinus, Send, Folder, Smartphone, Cloud, Loader2, HardDrive, ChevronLeft, ChevronRight, Upload, Github, Image as ImageIcon } from 'lucide-react';
+import { Settings, Users, Plus, X, Trash2, Edit3, LogOut, UserMinus, Send, Folder, Smartphone, Cloud, Loader2, HardDrive, ChevronLeft, ChevronRight, Upload, Github, Image as ImageIcon, CheckCircle, AlertCircle, MoreHorizontal, UserPlus, ImagePlus, MoreVertical, Share2 } from 'lucide-react';
 
 interface MainFeedPageProps {
   user: User;
@@ -29,340 +29,470 @@ const MainFeedPage: React.FC<MainFeedPageProps> = (props) => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showGroupActions, setShowGroupActions] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState<{type: 'delete' | 'leave', visible: boolean}>({type: 'delete', visible: false});
-  const [showAddMember, setShowAddMember] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<{type: 'delete' | 'leave', visible: boolean}>({
+    type: 'delete',
+    visible: false
+  });
 
-  const groupedPosts = useMemo(() => {
-    const sorted = [...posts].sort((a, b) => b.timestamp - a.timestamp);
-    const groups: { [key: string]: Post[] } = {};
-    sorted.forEach(post => {
-      const date = new Date(post.timestamp);
-      const monthYear = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-      if (!groups[monthYear]) groups[monthYear] = [];
-      groups[monthYear].push(post);
-    });
-    return Object.entries(groups);
-  }, [posts]);
-
-  const isHost = group.hostId === user.id;
-
-  return (
-    <div className="flex-1 flex flex-col h-screen bg-white">
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-lg border-b flex items-center justify-between px-4 py-3">
-        <button onClick={() => setShowMembers(true)} className="p-2 text-gray-500 hover:text-indigo-600 transition-colors">
-          <Users className="w-6 h-6" />
-        </button>
-        <button onClick={() => setShowGroupActions(true)} className="flex flex-col items-center flex-1 mx-4 overflow-hidden text-center">
-          <span className="font-extrabold text-gray-900 truncate w-full text-base tracking-tight">{group.name}</span>
-          <div className="flex items-center gap-1 justify-center">
-            <Cloud className="w-2 h-2 text-indigo-500 fill-indigo-500" />
-            <span className="text-[9px] text-indigo-500 font-black uppercase tracking-widest">Drive Connected</span>
-          </div>
-        </button>
-        <button onClick={() => setShowSettings(true)} className="p-2 text-gray-500 hover:text-indigo-600 transition-colors">
-          <Settings className="w-6 h-6" />
-        </button>
-      </header>
-
-      <main className="flex-1 overflow-y-auto no-scrollbar pb-32">
-        {groupedPosts.length > 0 ? (
-          groupedPosts.map(([month, monthPosts]) => (
-            <div key={month} className="mb-4">
-              <div className="px-5 py-4 bg-gray-50/70 flex items-center gap-2">
-                <div className="w-1 h-3 bg-indigo-600 rounded-full" />
-                <h2 className="text-[11px] font-black text-gray-800 uppercase tracking-[0.2em]">{month}</h2>
-              </div>
-              <div className="grid grid-cols-3 gap-0.5">
-                {monthPosts.map(post => (
-                  <button key={post.id} onClick={() => setSelectedPost(post)} className="aspect-square relative overflow-hidden group active:scale-95 transition-transform bg-gray-100">
-                    <img src={post.imageUrls[0]} alt="Thumbnail" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-40"></div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="flex flex-col items-center justify-center py-32 text-gray-200">
-            <HardDrive className="w-20 h-20 mb-4 opacity-10" />
-            <p className="font-black uppercase tracking-tighter text-gray-400">Empty Shared Folder</p>
-          </div>
-        )}
-      </main>
-
-      <button onClick={() => setShowCreatePost(true)} className="fixed bottom-8 right-8 w-16 h-16 bg-indigo-600 text-white rounded-2xl shadow-[0_20px_50px_rgba(79,70,229,0.3)] flex items-center justify-center hover:scale-110 active:scale-90 transition-all z-40">
-        <Plus className="w-10 h-10" />
-      </button>
-
-      {/* Detail & Modal Components */}
-      {selectedPost && <PostDetailModal post={selectedPost} currentUserId={user.id} onClose={() => setSelectedPost(null)} onDelete={onDeletePost} onEdit={onEditPost} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLogout={onLogout} onChangeGroup={onChangeGroup} />}
-      {showMembers && <MembersModal group={group} isHost={isHost} onClose={() => setShowMembers(false)} onAdd={() => setShowAddMember(true)} onRemove={onRemoveMember} />}
-      {showAddMember && <AddMemberModal onClose={() => setShowAddMember(false)} onSend={(email) => { onAddMember(email); setShowAddMember(false); }} />}
-      {showGroupActions && <GroupActionsModal isHost={isHost} onClose={() => setShowGroupActions(false)} onRename={() => { setShowRenameModal(true); setShowGroupActions(false); }} onDelete={() => { setShowConfirmModal({type: 'delete', visible: true}); setShowGroupActions(false); }} onLeave={() => { setShowConfirmModal({type: 'leave', visible: true}); setShowGroupActions(false); }} />}
-      {showRenameModal && <RenameModal initialName={group.name} onClose={() => setShowRenameModal(false)} onRename={(name) => { onRenameGroup(name); setShowRenameModal(false); }} />}
-      {showConfirmModal.visible && <ConfirmModal type={showConfirmModal.type} onClose={() => setShowConfirmModal({...showConfirmModal, visible: false})} onConfirm={() => { if (showConfirmModal.type === 'delete') onDeleteGroup(); else onLeaveGroup(); }} />}
-
-      {showCreatePost && (
-        <CreatePostModal 
-          user={user}
-          group={group}
-          onClose={() => setShowCreatePost(false)}
-          onUpload={onRealUpload}
-        />
-      )}
-    </div>
-  );
-};
-
-// --- Sub-components ---
-
-const PostDetailModal: React.FC<{
-  post: Post;
-  currentUserId: string;
-  onClose: () => void;
-  onDelete: (postId: string) => void;
-  onEdit: (postId: string, comment: string) => void;
-}> = ({ post, currentUserId, onClose, onDelete, onEdit }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editComment, setEditComment] = useState(post.comment);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const isOwner = post.userId === currentUserId;
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/98 backdrop-blur-3xl flex flex-col animate-in fade-in duration-300 overflow-hidden">
-      <div className="absolute top-0 inset-x-0 z-50 p-6 flex items-center justify-between">
-         <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">
-              {currentIndex + 1} / {post.imageUrls.length}
-            </span>
-         </div>
-         <button onClick={onClose} className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all active:scale-90">
-            <X className="w-6 h-6" />
-         </button>
-      </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center relative p-4">
-        <div className="relative w-full max-w-xl aspect-square rounded-[2rem] overflow-hidden shadow-2xl bg-black/20">
-          <img src={post.imageUrls[currentIndex]} alt={`Post content`} className="w-full h-full object-contain" />
-        </div>
-      </div>
-      
-      <div className="bg-white rounded-t-[3rem] p-8 pb-12 animate-in slide-in-from-bottom duration-500 max-w-2xl mx-auto w-full shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-             <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-               <ImageIcon className="w-5 h-5" />
-             </div>
-             <div className="flex flex-col">
-               <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Memory Shared</p>
-               <p className="text-xs font-bold text-gray-900">{new Date(post.timestamp).toLocaleDateString()}</p>
-             </div>
-          </div>
-          {isOwner && (
-            <div className="flex gap-2">
-              <button onClick={() => setIsEditing(!isEditing)} className={`p-3 rounded-xl transition-all ${isEditing ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-600'}`}>
-                <Edit3 className="w-5 h-5" />
-              </button>
-              <button onClick={() => { onDelete(post.id); onClose(); }} className="p-3 bg-red-50 text-red-600 rounded-xl">
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-        </div>
-        {isEditing ? (
-          <div className="space-y-4">
-            <textarea autoFocus value={editComment} onChange={(e) => setEditComment(e.target.value)} className="w-full p-6 bg-gray-50 rounded-2xl border-none text-sm font-medium min-h-[100px]" />
-            <button onClick={() => { onEdit(post.id, editComment); setIsEditing(false); }} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px]">Update Story</button>
-          </div>
-        ) : (
-          <p className="text-gray-800 text-base font-medium italic">{post.comment || "No story shared yet..."}</p>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const CreatePostModal: React.FC<{user: User, group: Group, onClose: () => void, onUpload?: (post: Post, blobs: Blob[]) => Promise<void>}> = ({ user, group, onClose, onUpload }) => {
-  const [selectedPhotos, setSelectedPhotos] = useState<{url: string, blob: Blob}[]>([]);
-  const [comment, setComment] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newPhotos = Array.from(files).map(file => ({
-        url: URL.createObjectURL(file),
-        blob: file
-      }));
-      setSelectedPhotos(prev => [...prev, ...newPhotos]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files) as File[];
+      setSelectedFiles(filesArray);
+      const previewUrls = filesArray.map(file => URL.createObjectURL(file));
+      setPreviews(previewUrls);
     }
   };
 
-  const handlePost = async () => {
-    if (selectedPhotos.length === 0 || !onUpload) return;
-    setIsSyncing(true);
-    const postStub: Post = {
-      id: '', userId: user.id, groupId: group.id, imageUrls: [], comment, timestamp: Date.now()
-    };
-    await onUpload(postStub, selectedPhotos.map(p => p.blob));
-    setIsSyncing(false);
-    onClose();
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0 || !onRealUpload) return;
+    
+    setIsUploading(true);
+    try {
+      const tempPost: Post = {
+        id: Date.now().toString(),
+        userId: user.id,
+        groupId: group.id,
+        imageUrls: [],
+        comment: newComment,
+        timestamp: Date.now()
+      };
+      
+      await onRealUpload(tempPost, selectedFiles);
+      
+      setShowCreatePost(false);
+      setNewComment('');
+      setSelectedFiles([]);
+      setPreviews([]);
+    } catch (error) {
+      alert("Upload failed. Please check your Drive connection.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden">
-      <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={handleFileSelect} />
-      <div className="p-6 border-b flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-20">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-indigo-600 text-white">
-             <Smartphone className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col">
-            <h2 className="text-xl font-black tracking-tighter">Save Memory</h2>
-            <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em]">{group.name}</p>
+    <div className="flex-1 flex flex-col bg-slate-50 relative h-screen overflow-hidden">
+      {/* Header */}
+      <header className="px-6 py-4 bg-white/80 backdrop-blur-md border-b sticky top-0 z-30 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={onChangeGroup}
+            className="p-2 -ml-2 text-slate-400 hover:text-indigo-600 transition-colors active:scale-90"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div>
+            <h1 className="text-lg font-black tracking-tighter text-slate-900 leading-none">{group.name}</h1>
+            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mt-1">Shared Drive</p>
           </div>
         </div>
-        <button onClick={onClose} className="p-3 text-gray-300 hover:text-gray-900"><X className="w-7 h-7" /></button>
-      </div>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setShowMembers(true)}
+            className="p-2 text-slate-400 hover:text-indigo-600 active:scale-90 transition-all"
+          >
+            <Users className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="p-2 text-slate-400 hover:text-indigo-600 active:scale-90 transition-all"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
 
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50 relative">
-        {isSyncing && (
-           <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-md flex flex-col items-center justify-center gap-4">
-             <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Uploading to Google Drive...</p>
-           </div>
-        )}
-        
-        {selectedPhotos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2">
-              <Upload className="w-4 h-4" /> Choose Photos
-            </button>
+      {/* Feed */}
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+        {posts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-10 text-center space-y-4">
+            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-200">
+              <ImageIcon className="w-10 h-10" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">No Moments Yet</h3>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-loose">
+              Be the first to share a memory in this group.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {selectedPhotos.map((p, idx) => (
-              <div key={idx} className="aspect-square relative rounded-2xl overflow-hidden shadow-sm">
-                <img src={p.url} className="w-full h-full object-cover" alt="Selected" />
-              </div>
+          <div className="grid grid-cols-2 gap-1 p-1">
+            {posts.map((post) => (
+              <button 
+                key={post.id}
+                onClick={() => setSelectedPost(post)}
+                className="aspect-square relative group overflow-hidden bg-slate-200 active:scale-[0.98] transition-transform"
+              >
+                <img 
+                  src={post.imageUrls[0]} 
+                  alt={post.comment} 
+                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                />
+                {post.comment && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 text-left">
+                    <p className="text-[10px] text-white font-bold line-clamp-1 opacity-90">{post.comment}</p>
+                  </div>
+                )}
+              </button>
             ))}
-            <button onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-indigo-200 rounded-2xl flex flex-col items-center justify-center text-indigo-400 bg-indigo-50/30">
-              <Plus className="w-6 h-6" />
-            </button>
           </div>
         )}
       </div>
 
-      <div className="p-8 bg-white border-t space-y-6">
-        <textarea placeholder="Tell the story behind these moments..." value={comment} onChange={(e) => setComment(e.target.value)} className="w-full p-6 bg-gray-50 rounded-[2rem] border-none text-sm min-h-[120px] font-medium" />
-        <button disabled={selectedPhotos.length === 0 || isSyncing} onClick={handlePost} className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 disabled:opacity-50 text-[10px] tracking-widest uppercase flex items-center justify-center gap-2">
-          <Send className="w-4 h-4" /> Upload to Drive
-        </button>
-      </div>
-    </div>
-  );
-};
+      {/* Floating Action Button */}
+      <button 
+        onClick={() => setShowCreatePost(true)}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl shadow-indigo-600/40 flex items-center justify-center active:scale-90 transition-all z-40 hover:bg-indigo-700"
+      >
+        <Plus className="w-8 h-8" />
+      </button>
 
-// ... SettingsModal, MembersModal, AddMemberModal, GroupActionsModal, RenameModal, ConfirmModal (Rest unchanged) ...
-const SettingsModal: React.FC<{onClose: () => void, onLogout: () => void, onChangeGroup: () => void}> = ({ onClose, onLogout, onChangeGroup }) => (
-  <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-end justify-center p-4">
-    <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl animate-in slide-in-from-bottom duration-300 relative">
-      <button onClick={onClose} className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900"><X className="w-5 h-5" /></button>
-      <h2 className="text-2xl font-black mb-6 tracking-tighter">My Settings</h2>
-      <div className="space-y-3">
-        <button onClick={onChangeGroup} className="w-full flex items-center gap-4 p-5 bg-indigo-50 rounded-2xl text-indigo-600 font-black"><Folder className="w-5 h-5" /> Change Group</button>
-        <button onClick={onLogout} className="w-full flex items-center gap-4 p-5 bg-red-50 text-red-600 rounded-2xl font-black"><LogOut className="w-5 h-5" /> Logout</button>
-        <button onClick={onClose} className="w-full p-5 mt-4 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Close</button>
-      </div>
-    </div>
-  </div>
-);
+      {/* Create Post Modal */}
+      {showCreatePost && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col animate-in fade-in duration-300">
+          <header className="px-6 py-6 flex items-center justify-between text-white border-b border-white/10">
+            <button onClick={() => setShowCreatePost(false)} className="p-2 -ml-2 opacity-60 hover:opacity-100"><X /></button>
+            <h2 className="text-lg font-black tracking-tighter uppercase tracking-widest text-[10px]">New Moment</h2>
+            <button 
+              onClick={handleUpload}
+              disabled={isUploading || selectedFiles.length === 0}
+              className="px-6 py-2 bg-white text-indigo-600 rounded-full font-black text-xs uppercase tracking-widest disabled:opacity-50"
+            >
+              {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Share"}
+            </button>
+          </header>
 
-const MembersModal: React.FC<{group: Group, isHost: boolean, onClose: () => void, onAdd: () => void, onRemove: (e: string) => void}> = ({ group, isHost, onClose, onAdd, onRemove }) => (
-  <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-6">
-    <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl flex flex-col max-h-[80vh] relative">
-      <button onClick={onClose} className="absolute top-6 right-6 p-2 text-gray-400"><X className="w-5 h-5" /></button>
-      <div className="p-8 border-b">
-        <h2 className="text-2xl font-black tracking-tighter">Group Members</h2>
-      </div>
-      <div className="flex-1 overflow-y-auto p-6 space-y-3">
-        {group.memberEmails.map((email, idx) => (
-          <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
-            <span className="text-sm font-bold text-gray-700">{email}</span>
-            {isHost && idx !== 0 && <button onClick={() => onRemove(email)} className="text-red-500"><UserMinus className="w-5 h-5" /></button>}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {previews.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {previews.map((url, idx) => (
+                  <div key={idx} className="aspect-square rounded-2xl overflow-hidden bg-white/5 relative">
+                    <img src={url} className="w-full h-full object-cover" />
+                    <button 
+                      onClick={() => {
+                        const newFiles = [...selectedFiles];
+                        newFiles.splice(idx, 1);
+                        setSelectedFiles(newFiles);
+                        const newPreviews = [...previews];
+                        newPreviews.splice(idx, 1);
+                        setPreviews(newPreviews);
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-black/40 rounded-full text-white"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-2 text-white/40 hover:text-white/60 transition-colors"
+                >
+                  <ImagePlus className="w-6 h-6" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Add More</span>
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full aspect-[4/3] rounded-[2.5rem] border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-4 text-white/40 group hover:border-white/20 transition-all"
+              >
+                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Upload className="w-8 h-8" />
+                </div>
+                <p className="font-black text-xs uppercase tracking-widest">Select Photos from Device</p>
+              </button>
+            )}
+
+            <textarea 
+              placeholder="Write a caption..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="w-full bg-transparent text-white text-xl font-medium outline-none placeholder:text-white/20 resize-none min-h-[120px]"
+            />
           </div>
-        ))}
-      </div>
-      {isHost && (
-        <div className="p-8 border-t">
-          <button onClick={onAdd} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs tracking-widest uppercase shadow-lg shadow-indigo-100">Add via Email</button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            multiple 
+            accept="image/*" 
+            className="hidden" 
+          />
+        </div>
+      )}
+
+      {/* Post Detail Modal */}
+      {selectedPost && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col animate-in fade-in zoom-in-95 duration-300">
+          <div className="absolute top-0 inset-x-0 p-6 flex items-center justify-between text-white z-10 bg-gradient-to-b from-black/60 to-transparent">
+            <button onClick={() => setSelectedPost(null)} className="p-2 -ml-2 opacity-80"><X /></button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  if (confirm("Delete this memory from Drive?")) {
+                    onDeletePost(selectedPost.id);
+                    setSelectedPost(null);
+                  }
+                }}
+                className="p-2 opacity-60 hover:opacity-100"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center">
+            <img src={selectedPost.imageUrls[0]} className="max-w-full max-h-full object-contain" />
+          </div>
+
+          <div className="p-8 bg-white rounded-t-[2.5rem] mt-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black">
+                  {user.name[0]}
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-slate-900 tracking-tight">{user.name}</h4>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {new Date(selectedPost.timestamp).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <button className="p-2 text-slate-300 hover:text-slate-900"><Share2 className="w-5 h-5" /></button>
+            </div>
+            <p className="text-slate-600 font-medium leading-relaxed">{selectedPost.comment || "No caption provided."}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Side Panel */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
+            <div className="p-8 border-b">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-2xl font-black tracking-tighter">Settings</h3>
+                <button onClick={() => setShowSettings(false)} className="p-2 text-slate-400 hover:text-slate-900"><X /></button>
+              </div>
+              
+              <div className="flex items-center gap-4 mb-2">
+                <div className="w-16 h-16 rounded-[1.5rem] bg-slate-100 flex items-center justify-center overflow-hidden">
+                  {user.photoUrl ? <img src={user.photoUrl} className="w-full h-full object-cover" /> : <div className="text-2xl font-black">{user.name[0]}</div>}
+                </div>
+                <div>
+                  <p className="font-black text-slate-900 tracking-tight">{user.name}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate max-w-[120px]">{user.email}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <button 
+                onClick={() => { setShowSettings(false); setShowMembers(true); }}
+                className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl transition-all group"
+              >
+                <Users className="w-5 h-5 text-slate-400 group-hover:text-indigo-600" />
+                <span className="font-bold text-slate-600 group-hover:text-slate-900">Manage Group Members</span>
+              </button>
+              <button 
+                onClick={() => setShowGroupActions(true)}
+                className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl transition-all group"
+              >
+                <Folder className="w-5 h-5 text-slate-400 group-hover:text-indigo-600" />
+                <span className="font-bold text-slate-600 group-hover:text-slate-900">Folder Actions</span>
+              </button>
+            </div>
+
+            <div className="p-8 border-t space-y-4">
+              <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-3">
+                <Cloud className="w-5 h-5 text-indigo-500" />
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Google Drive Connected</p>
+              </div>
+              <button 
+                onClick={onLogout}
+                className="w-full flex items-center justify-center gap-2 py-4 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Members Modal */}
+      {showMembers && (
+        <div className="fixed inset-0 z-[110] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-8 border-b bg-indigo-600 text-white relative">
+              <button onClick={() => setShowMembers(false)} className="absolute top-6 right-6 opacity-60"><X /></button>
+              <h3 className="text-xl font-black tracking-tighter">Group Members</h3>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-1">SharedMoments Access List</p>
+            </div>
+            <div className="p-4 max-h-[400px] overflow-y-auto no-scrollbar">
+              {group.memberEmails.map((email, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-black text-xs">
+                      {email[0].toUpperCase()}
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 truncate max-w-[150px]">{email}</span>
+                  </div>
+                  {email === user.email ? (
+                    <span className="text-[8px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-1 rounded-full">You</span>
+                  ) : (
+                    <button className="text-red-400 p-1"><UserMinus className="w-4 h-4" /></button>
+                  )}
+                </div>
+              ))}
+              <button className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all active:scale-[0.98]">
+                <UserPlus className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Invite via Drive</span>
+              </button>
+            </div>
+            <div className="p-6 bg-slate-50/50">
+              <button 
+                onClick={() => setShowMembers(false)}
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Group Actions Bottom Sheet */}
+      {showGroupActions && (
+        <div className="fixed inset-0 z-[120] bg-black/60 flex items-end animate-in fade-in duration-300" onClick={() => setShowGroupActions(false)}>
+          <div className="w-full bg-white rounded-t-[3rem] p-8 animate-in slide-in-from-bottom duration-300" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-slate-100 rounded-full mx-auto mb-8" />
+            <h3 className="text-xl font-black tracking-tighter mb-6">Folder Management</h3>
+            <div className="space-y-3">
+              <button 
+                onClick={() => { setShowGroupActions(false); setShowRenameModal(true); }}
+                className="w-full flex items-center gap-4 p-5 bg-slate-50 rounded-[2rem] hover:bg-slate-100 transition-all text-left"
+              >
+                <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Rename Group</p>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Update Drive Folder Name</p>
+                </div>
+              </button>
+              
+              <button 
+                onClick={() => { setShowGroupActions(false); setShowConfirmModal({type: 'leave', visible: true}); }}
+                className="w-full flex items-center gap-4 p-5 bg-slate-50 rounded-[2rem] hover:bg-slate-100 transition-all text-left"
+              >
+                <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-amber-500">
+                  <LogOut className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">Leave Group</p>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Stop syncing this folder</p>
+                </div>
+              </button>
+
+              <button 
+                onClick={() => { setShowGroupActions(false); setShowConfirmModal({type: 'delete', visible: true}); }}
+                className="w-full flex items-center gap-4 p-5 bg-red-50 rounded-[2rem] hover:bg-red-100 transition-all text-left group"
+              >
+                <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-red-900">Delete Permanently</p>
+                  <p className="text-[10px] text-red-400 font-black uppercase tracking-widest">Move folder to Drive Trash</p>
+                </div>
+              </button>
+            </div>
+            <button 
+              onClick={() => setShowGroupActions(false)}
+              className="w-full py-5 text-slate-300 font-black text-xs uppercase tracking-widest mt-4"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Modal */}
+      {showRenameModal && (
+        <div className="fixed inset-0 z-[130] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
+            <h2 className="text-xl font-black tracking-tighter mb-2">Rename Folder</h2>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6 leading-relaxed">Changes name in your Google Drive too.</p>
+            <input 
+              autoFocus
+              className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold mb-8"
+              defaultValue={group.name}
+              onKeyDown={(e) => {
+                if(e.key === 'Enter') {
+                  onRenameGroup(e.currentTarget.value);
+                  setShowRenameModal(false);
+                }
+              }}
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setShowRenameModal(false)} className="flex-1 py-4 text-slate-400 font-black text-[10px] uppercase tracking-widest">Cancel</button>
+              <button 
+                onClick={() => {
+                  const input = document.querySelector('input') as HTMLInputElement;
+                  onRenameGroup(input.value);
+                  setShowRenameModal(false);
+                }}
+                className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-100"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal.visible && (
+        <div className="fixed inset-0 z-[140] bg-slate-900/95 flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-sm text-center shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+            <div className={`w-16 h-16 rounded-3xl mx-auto mb-6 flex items-center justify-center ${showConfirmModal.type === 'delete' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-500'}`}>
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black tracking-tighter mb-4">Are you sure?</h2>
+            <p className="text-slate-500 text-sm font-medium leading-relaxed mb-10">
+              {showConfirmModal.type === 'delete' 
+                ? "This will move the entire folder and all shared photos to your Google Drive trash."
+                : "You will no longer see updates from this folder, but photos will remain in Drive."}
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  if(showConfirmModal.type === 'delete') onDeleteGroup();
+                  else onLeaveGroup();
+                  setShowConfirmModal({type: 'delete', visible: false});
+                }}
+                className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white shadow-xl ${showConfirmModal.type === 'delete' ? 'bg-red-500 shadow-red-100' : 'bg-amber-500 shadow-amber-100'}`}
+              >
+                Confirm {showConfirmModal.type === 'delete' ? "Delete" : "Leave"}
+              </button>
+              <button 
+                onClick={() => setShowConfirmModal({type: 'delete', visible: false})}
+                className="w-full py-4 text-slate-300 font-bold text-[10px] uppercase tracking-widest"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
-  </div>
-);
-
-const AddMemberModal: React.FC<{onClose: () => void, onSend: (email: string) => void}> = ({ onClose, onSend }) => {
-  const [email, setEmail] = useState('');
-  return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-      <div className="bg-white w-full max-w-sm rounded-3xl p-10 animate-in zoom-in duration-200 relative">
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 text-gray-400"><X className="w-5 h-5" /></button>
-        <h3 className="text-2xl font-black mb-2 tracking-tighter">Invite Member</h3>
-        <input autoFocus type="email" placeholder="email@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-5 bg-gray-100 rounded-2xl mb-8 outline-none font-black" />
-        <div className="flex gap-4">
-          <button onClick={onClose} className="flex-1 py-4 text-gray-400 font-bold">Back</button>
-          <button onClick={() => onSend(email)} disabled={!email.includes('@')} className="flex-2 w-2/3 py-4 bg-indigo-600 text-white rounded-2xl font-black">INVITE</button>
-        </div>
-      </div>
-    </div>
   );
 };
-
-const GroupActionsModal: React.FC<{isHost: boolean, onClose: () => void, onRename: () => void, onDelete: () => void, onLeave: () => void}> = ({ isHost, onClose, onRename, onDelete, onLeave }) => (
-  <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6">
-    <div className="bg-white w-full max-w-xs rounded-[2.5rem] p-10 space-y-3 relative">
-      <button onClick={onClose} className="absolute top-6 right-6 p-2 text-gray-400"><X className="w-5 h-5" /></button>
-      <p className="text-center text-[9px] font-black uppercase text-gray-300 tracking-widest mb-6">Drive Management</p>
-      {isHost ? (
-        <>
-          <button onClick={onRename} className="w-full p-5 bg-indigo-50 text-indigo-600 rounded-2xl font-black">Rename Folder</button>
-          <button onClick={onDelete} className="w-full p-5 bg-red-50 text-red-600 rounded-2xl font-black">Delete All Content</button>
-        </>
-      ) : (
-        <button onClick={onLeave} className="w-full p-5 bg-red-50 text-red-600 rounded-2xl font-black">Leave Shared Drive</button>
-      )}
-      <button onClick={onClose} className="w-full pt-4 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Back</button>
-    </div>
-  </div>
-);
-
-const RenameModal: React.FC<{initialName: string, onClose: () => void, onRename: (name: string) => void}> = ({ initialName, onClose, onRename }) => {
-  const [name, setName] = useState(initialName);
-  return (
-    <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-6">
-      <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 relative">
-        <button onClick={onClose} className="absolute top-6 right-6 p-2 text-gray-400"><X className="w-5 h-5" /></button>
-        <h3 className="text-xl font-black mb-6">Rename Folder</h3>
-        <input value={name} onChange={(e) => setName(e.target.value)} className="w-full p-5 bg-gray-100 rounded-2xl mb-8 font-black" />
-        <button onClick={() => onRename(name)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black">Save</button>
-      </div>
-    </div>
-  );
-};
-
-const ConfirmModal: React.FC<{type: 'delete' | 'leave', onClose: () => void, onConfirm: () => void}> = ({ type, onClose, onConfirm }) => (
-  <div className="fixed inset-0 z-[70] bg-red-600/98 backdrop-blur-2xl flex flex-col items-center justify-center p-8 text-white text-center relative">
-    <button onClick={onClose} className="absolute top-10 right-10 p-4 text-white/60"><X className="w-8 h-8" /></button>
-    <h2 className="text-6xl font-black mb-6 italic tracking-tighter">DANGER</h2>
-    <p className="text-xl font-bold mb-12 opacity-80">{type === 'delete' ? 'This removes ALL photos from your Google Drive folder!' : 'You will lose access to these shared memories.'}</p>
-    <div className="flex flex-col gap-4 w-full max-w-xs">
-      <button onClick={onConfirm} className="py-6 bg-white text-red-600 rounded-[2.5rem] font-black text-xl transition-all active:scale-95">PROCEED</button>
-      <button onClick={onClose} className="py-4 font-black border-2 border-white/20 rounded-[2.5rem] transition-all active:scale-95">ABORT</button>
-    </div>
-  </div>
-);
 
 export default MainFeedPage;
