@@ -4,7 +4,7 @@ export interface User {
   email: string;
   name: string;
   photoUrl?: string;
-  accessToken?: string; // For real Google API calls
+  accessToken?: string;
 }
 
 export interface DriveItem {
@@ -21,7 +21,8 @@ export interface Group {
   name: string;
   hostId: string;
   memberEmails: string[];
-  configDriveFileId?: string; // Reference to the .json file in Drive
+  driveFolderId: string; // The specific folder ID in Google Drive
+  path: string; // e.g., "SharedMoments/Family"
 }
 
 export interface Post {
@@ -37,10 +38,4 @@ export enum Page {
   AUTH = 'AUTH',
   GROUP_SELECTION = 'GROUP_SELECTION',
   MAIN_FEED = 'MAIN_FEED'
-}
-
-export interface Invitation {
-  groupId: string;
-  groupName: string;
-  hostEmail: string;
 }

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { User, Group, Post, DriveItem } from '../types';
-import { Settings, Users, Plus, X, Trash2, Edit3, LogOut, RefreshCcw, UserMinus, Send, Folder, Smartphone, Cloud, Search, Loader2, HardDrive, ChevronLeft, Upload, Github, Image as ImageIcon } from 'lucide-react';
+import { Settings, Users, Plus, X, Trash2, Edit3, LogOut, RefreshCcw, UserMinus, Send, Folder, Smartphone, Cloud, Search, Loader2, HardDrive, ChevronLeft, ChevronRight, Upload, Github, Image as ImageIcon } from 'lucide-react';
 
 interface MainFeedPageProps {
   user: User;
@@ -66,15 +66,20 @@ const MainFeedPage: React.FC<MainFeedPageProps> = (props) => {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
         {groupedPosts.length > 0 ? (
           groupedPosts.map(([month, monthPosts]) => (
-            <div key={month} className="mb-6">
-              <h2 className="px-4 py-3 text-xs font-black text-gray-400 sticky top-[56px] bg-white/95 z-20 backdrop-blur-sm uppercase tracking-widest">{month}</h2>
+            <div key={month} className="mb-2">
+              <div className="px-6 py-4 sticky top-[56px] bg-white/95 z-20 backdrop-blur-md border-b border-gray-100 flex items-center gap-2">
+                <div className="w-1 h-3 bg-indigo-600 rounded-full" />
+                <h2 className="text-[10px] font-black text-gray-800 uppercase tracking-[0.2em]">{month}</h2>
+              </div>
               <div className="grid grid-cols-3 gap-0.5">
                 {monthPosts.map(post => (
                   <button key={post.id} onClick={() => setSelectedPost(post)} className="aspect-square relative overflow-hidden group active:scale-95 transition-transform">
                     <img src={post.imageUrls[0]} alt="Thumbnail" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60"></div>
                     {post.imageUrls.length > 1 && (
-                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full font-black">+{post.imageUrls.length - 1}</div>
+                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-2 py-0.5 rounded-full font-black border border-white/10">
+                        {post.imageUrls.length}
+                      </div>
                     )}
                   </button>
                 ))}
@@ -84,7 +89,7 @@ const MainFeedPage: React.FC<MainFeedPageProps> = (props) => {
         ) : (
           <div className="flex flex-col items-center justify-center py-32 text-gray-200">
             <HardDrive className="w-20 h-20 mb-4 opacity-10" />
-            <p className="font-black uppercase tracking-tighter text-gray-400">Empty Shared Drive</p>
+            <p className="font-black uppercase tracking-tighter text-gray-400">Empty Shared Folder</p>
           </div>
         )}
       </main>
@@ -105,7 +110,7 @@ const MainFeedPage: React.FC<MainFeedPageProps> = (props) => {
       {showCreatePost && (
         <CreatePostModal 
           user={user}
-          groupId={group.id}
+          group={group}
           onClose={() => setShowCreatePost(false)}
           onPost={(post) => { onAddPost(post); setShowCreatePost(false); }}
         />
@@ -125,73 +130,135 @@ const PostDetailModal: React.FC<{
 }> = ({ post, currentUserId, onClose, onDelete, onEdit }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editComment, setEditComment] = useState(post.comment);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const isOwner = post.userId === currentUserId;
 
+  const touchStartX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX;
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < post.imageUrls.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else if (diff < 0 && currentIndex > 0) {
+        setCurrentIndex(prev => prev - 1);
+      }
+    }
+    touchStartX.current = null;
+  };
+
+  const nextImg = () => {
+    if (currentIndex < post.imageUrls.length - 1) setCurrentIndex(prev => prev + 1);
+  };
+  const prevImg = () => {
+    if (currentIndex > 0) setCurrentIndex(prev => prev - 1);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl flex flex-col animate-in fade-in duration-300">
-      <div className="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <button onClick={onClose} className="absolute top-6 right-6 p-4 bg-white/10 backdrop-blur-md rounded-full text-white z-50 hover:bg-white/20 transition-all active:scale-90">
-          <X className="w-6 h-6" />
-        </button>
+    <div className="fixed inset-0 z-50 bg-black/98 backdrop-blur-3xl flex flex-col animate-in fade-in duration-300 overflow-hidden">
+      <div className="absolute top-0 inset-x-0 z-50 p-6 flex items-center justify-between">
+         <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+            <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">
+              {currentIndex + 1} / {post.imageUrls.length}
+            </span>
+         </div>
+         <button onClick={onClose} className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all active:scale-90">
+            <X className="w-6 h-6" />
+         </button>
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center relative touch-none" 
+           onTouchStart={handleTouchStart} 
+           onTouchEnd={handleTouchEnd}>
         
-        <div className="w-full max-w-xl aspect-square rounded-[3rem] overflow-hidden shadow-2xl relative group">
-          <img src={post.imageUrls[0]} alt="Post" className="w-full h-full object-cover" />
-          {post.imageUrls.length > 1 && (
-            <div className="absolute bottom-6 right-6 bg-black/60 backdrop-blur-md text-white text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest">
-              + {post.imageUrls.length - 1} photos
-            </div>
-          )}
+        {currentIndex > 0 && (
+          <button onClick={prevImg} className="absolute left-4 z-40 p-4 bg-black/20 text-white rounded-full backdrop-blur-sm hidden md:flex">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+        {currentIndex < post.imageUrls.length - 1 && (
+          <button onClick={nextImg} className="absolute right-4 z-40 p-4 bg-black/20 text-white rounded-full backdrop-blur-sm hidden md:flex">
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+
+        <div className="w-full h-full flex items-center justify-center p-4">
+          <div className="relative w-full max-w-xl aspect-square rounded-[2rem] overflow-hidden shadow-2xl bg-black/20">
+            <img 
+              src={post.imageUrls[currentIndex]} 
+              alt={`Post content ${currentIndex + 1}`} 
+              className="w-full h-full object-contain transition-all duration-500 ease-out" 
+            />
+          </div>
         </div>
+
+        {post.imageUrls.length > 1 && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-1.5 z-40">
+            {post.imageUrls.map((_, i) => (
+              <div 
+                key={i} 
+                className={`h-1 rounded-full transition-all duration-300 ${i === currentIndex ? 'w-6 bg-white' : 'w-2 bg-white/30'}`} 
+              />
+            ))}
+          </div>
+        )}
       </div>
       
-      <div className="bg-white rounded-t-[3rem] p-10 pb-16 animate-in slide-in-from-bottom duration-500 max-w-2xl mx-auto w-full">
-        <div className="flex items-center justify-between mb-8">
+      <div className="bg-white rounded-t-[3rem] p-8 pb-12 animate-in slide-in-from-bottom duration-500 max-w-2xl mx-auto w-full shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-             <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-               <Users className="w-6 h-6" />
+             <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+               <Users className="w-5 h-5" />
              </div>
              <div className="flex flex-col">
-               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Shared Memory</p>
-               <p className="text-sm font-bold text-gray-900">{new Date(post.timestamp).toLocaleDateString()}</p>
+               <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em]">Shared Memory</p>
+               <p className="text-xs font-bold text-gray-900">{new Date(post.timestamp).toLocaleDateString()}</p>
              </div>
           </div>
           
           {isOwner && (
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button 
                 onClick={() => setIsEditing(!isEditing)} 
-                className={`p-4 rounded-2xl transition-all active:scale-95 ${isEditing ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                className={`p-3 rounded-xl transition-all active:scale-95 ${isEditing ? 'bg-indigo-600 text-white' : 'bg-gray-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'}`}
               >
-                <Edit3 className="w-6 h-6" />
+                <Edit3 className="w-5 h-5" />
               </button>
               <button 
                 onClick={() => { onDelete(post.id); onClose(); }} 
-                className="p-4 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all active:scale-95"
+                className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all active:scale-95"
               >
-                <Trash2 className="w-6 h-6" />
+                <Trash2 className="w-5 h-5" />
               </button>
             </div>
           )}
         </div>
 
         {isEditing ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <textarea 
               autoFocus
               value={editComment}
               onChange={(e) => setEditComment(e.target.value)}
-              className="w-full p-8 bg-gray-50 rounded-[2rem] border-none focus:ring-4 focus:ring-indigo-500/5 outline-none text-base font-medium min-h-[140px]"
+              className="w-full p-6 bg-gray-50 rounded-2xl border-none focus:ring-4 focus:ring-indigo-500/5 outline-none text-sm font-medium min-h-[100px]"
             />
             <button 
               onClick={() => { onEdit(post.id, editComment); setIsEditing(false); }} 
-              className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100"
+              className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100"
             >
               Update Story
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            <p className="text-gray-800 text-xl font-medium leading-relaxed italic">
+          <div className="max-h-32 overflow-y-auto no-scrollbar">
+            <p className="text-gray-800 text-base font-medium leading-relaxed italic">
               {post.comment || "No story shared yet..."}
             </p>
           </div>
@@ -201,7 +268,7 @@ const PostDetailModal: React.FC<{
   );
 };
 
-const CreatePostModal: React.FC<{user: User, groupId: string, onClose: () => void, onPost: (post: Post) => void}> = ({ user, groupId, onClose, onPost }) => {
+const CreatePostModal: React.FC<{user: User, group: Group, onClose: () => void, onPost: (post: Post) => void}> = ({ user, group, onClose, onPost }) => {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -212,7 +279,6 @@ const CreatePostModal: React.FC<{user: User, groupId: string, onClose: () => voi
     const files = e.target.files;
     if (files) {
       setIsSyncing(true);
-      // Simulate processing time
       setTimeout(() => {
         const urls = Array.from(files).map(file => URL.createObjectURL(file));
         setSelectedPhotos(prev => [...prev, ...urls]);
@@ -230,7 +296,7 @@ const CreatePostModal: React.FC<{user: User, groupId: string, onClose: () => voi
     onPost({
       id: `p_${Date.now()}`,
       userId: user.id,
-      groupId: groupId,
+      groupId: group.id,
       imageUrls: selectedPhotos,
       comment,
       timestamp: Date.now()
@@ -254,8 +320,8 @@ const CreatePostModal: React.FC<{user: User, groupId: string, onClose: () => voi
              <Smartphone className="w-6 h-6" />
           </div>
           <div className="flex flex-col">
-            <h2 className="text-xl font-black tracking-tighter leading-none">New Memory</h2>
-            <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">Pick from your device</p>
+            <h2 className="text-xl font-black tracking-tighter leading-none">Save Memory</h2>
+            <p className="text-[9px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">To: {group.path}</p>
           </div>
         </div>
         <button onClick={onClose} className="p-3 text-gray-300 hover:text-gray-900 transition-colors">
@@ -267,7 +333,7 @@ const CreatePostModal: React.FC<{user: User, groupId: string, onClose: () => voi
         {isSyncing && (
            <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-md flex flex-col items-center justify-center gap-4">
              <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
-             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Processing Photos...</p>
+             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Uploading to Folder...</p>
            </div>
         )}
         
@@ -276,8 +342,8 @@ const CreatePostModal: React.FC<{user: User, groupId: string, onClose: () => voi
             <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 text-indigo-300">
               <ImageIcon className="w-12 h-12" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">No photos selected</h3>
-            <p className="text-sm text-gray-400 mb-8 max-w-[200px] mx-auto">Selected photos will be uploaded to your shared group folder.</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Pick Moments</h3>
+            <p className="text-sm text-gray-400 mb-8 max-w-[200px] mx-auto">Select photos from your device to store in this group's cloud folder.</p>
             <button 
               onClick={() => fileInputRef.current?.click()}
               className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"
@@ -329,7 +395,7 @@ const CreatePostModal: React.FC<{user: User, groupId: string, onClose: () => voi
             className="flex-2 w-2/3 py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 disabled:opacity-50 transition-all uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
           >
             <Send className="w-4 h-4" />
-            Post to Shared Drive
+            Upload to Drive
           </button>
         </div>
       </div>
@@ -373,7 +439,7 @@ const MembersModal: React.FC<{group: Group, isHost: boolean, onClose: () => void
       </button>
       <div className="p-8 border-b">
         <h2 className="text-2xl font-black tracking-tighter">Group Members</h2>
-        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold mt-1">Managed via Drive Config</p>
+        <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold mt-1">Managed via Drive members.txt</p>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-3 no-scrollbar">
         {group.memberEmails.map((email, idx) => (
@@ -449,7 +515,7 @@ const RenameModal: React.FC<{initialName: string, onClose: () => void, onRename:
         >
           <X className="w-5 h-5" />
         </button>
-        <h3 className="text-xl font-black mb-6">Rename Group</h3>
+        <h3 className="text-xl font-black mb-6">Rename Folder</h3>
         <input value={name} onChange={(e) => setName(e.target.value)} className="w-full p-5 bg-gray-100 rounded-2xl mb-8 font-black" />
         <button onClick={() => onRename(name)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black">Save</button>
       </div>
