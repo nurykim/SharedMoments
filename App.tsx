@@ -5,13 +5,8 @@ import AuthPage from './components/AuthPage';
 import GroupSelectionPage from './components/GroupSelectionPage';
 import MainFeedPage from './components/MainFeedPage';
 
-// Mock Data representing simulated Google Drive storage
-const MOCK_USER: User = {
-  id: 'google_102938',
-  email: 'user@gmail.com',
-  name: 'Google User',
-  photoUrl: 'https://picsum.photos/seed/google/100/100'
-};
+const CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // User must replace this
+const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile";
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>(Page.AUTH);
@@ -20,53 +15,119 @@ const App: React.FC = () => {
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isScanningDrive, setIsScanningDrive] = useState(false);
+  const [tokenClient, setTokenClient] = useState<any>(null);
 
-  // Simulate Drive Sync on Login
   useEffect(() => {
-    const savedUser = localStorage.getItem('shared_moments_user');
-    const remembered = localStorage.getItem('shared_moments_remember') === 'true';
-    if (remembered && savedUser) {
-      handleUserReady(JSON.parse(savedUser));
+    // Fix: Access google property via type assertion to window to avoid TypeScript error (Property 'google' does not exist on type 'Window')
+    const google = (window as any).google;
+    // Initialize Google Identity Services
+    if (google) {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (tokenResponse: any) => {
+          if (tokenResponse.access_token) {
+            handleAuthSuccess(tokenResponse.access_token);
+          }
+        },
+      });
+      setTokenClient(client);
     }
   }, []);
 
-  const handleUserReady = (userData: User) => {
-    setUser(userData);
+  const handleAuthSuccess = async (accessToken: string) => {
     setIsScanningDrive(true);
     setCurrentPage(Page.GROUP_SELECTION);
-    
-    // Simulate finding the "SharedMoments" folder and its children
-    setTimeout(() => {
-      const savedGroups = localStorage.getItem(`drive_folders_${userData.id}`);
-      if (savedGroups) {
-        setGroups(JSON.parse(savedGroups));
-      } else {
-        // Initial empty state: Ensure the root folder "SharedMoments" exists logically
-        setGroups([]);
-      }
+
+    try {
+      // 1. Fetch User Info
+      const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const userData = await userRes.json();
+      const authenticatedUser: User = {
+        id: userData.sub,
+        email: userData.email,
+        name: userData.name,
+        photoUrl: userData.picture,
+        accessToken
+      };
+      setUser(authenticatedUser);
+
+      // 2. Find or Create SharedMoments Root
+      const rootId = await findOrCreateFolder(accessToken, 'SharedMoments');
+      
+      // 3. List Subfolders (Groups)
+      const groupFolders = await listFoldersIn(accessToken, rootId);
+      const groupList: Group[] = groupFolders.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        hostId: authenticatedUser.id,
+        memberEmails: [authenticatedUser.email],
+        driveFolderId: f.id,
+        path: `SharedMoments/${f.name}`
+      }));
+
+      setGroups(groupList);
+    } catch (error) {
+      console.error("Drive Sync Error:", error);
+    } finally {
       setIsScanningDrive(false);
-    }, 1500);
+    }
   };
 
-  const handleLogin = (remember: boolean) => {
-    if (remember) {
-      localStorage.setItem('shared_moments_remember', 'true');
-      localStorage.setItem('shared_moments_user', JSON.stringify(MOCK_USER));
+  const findOrCreateFolder = async (token: string, name: string, parentId?: string) => {
+    const q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false${parentId ? ` and '${parentId}' in parents` : ''}`;
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.files && data.files.length > 0) return data.files[0].id;
+
+    // Create if not found
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: parentId ? [parentId] : []
+      })
+    });
+    const newFolder = await createRes.json();
+    return newFolder.id;
+  };
+
+  const listFoldersIn = async (token: string, parentId: string) => {
+    const q = `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    return data.files || [];
+  };
+
+  const handleLogin = () => {
+    if (tokenClient) {
+      tokenClient.requestAccessToken();
     }
-    handleUserReady(MOCK_USER);
   };
 
   const handleLogout = () => {
     setUser(null);
     setCurrentGroup(null);
-    localStorage.removeItem('shared_moments_remember');
-    localStorage.removeItem('shared_moments_user');
     setCurrentPage(Page.AUTH);
   };
 
-  const createGroupFolder = (name: string) => {
-    if (!user) return;
-    const folderId = `folder_${Date.now()}`;
+  const createGroupFolder = async (name: string) => {
+    if (!user?.accessToken) return;
+    setIsScanningDrive(true);
+    const rootId = await findOrCreateFolder(user.accessToken, 'SharedMoments');
+    const folderId = await findOrCreateFolder(user.accessToken, name, rootId);
+    
     const newGroup: Group = {
       id: folderId,
       name,
@@ -76,37 +137,34 @@ const App: React.FC = () => {
       path: `SharedMoments/${name}`
     };
     
-    const updatedGroups = [...groups, newGroup];
-    setGroups(updatedGroups);
-    localStorage.setItem(`drive_folders_${user.id}`, JSON.stringify(updatedGroups));
-    
+    setGroups([...groups, newGroup]);
     setCurrentGroup(newGroup);
     setCurrentPage(Page.MAIN_FEED);
+    setIsScanningDrive(false);
   };
 
-  const selectGroup = (group: Group) => {
+  const selectGroup = async (group: Group) => {
     setCurrentGroup(group);
+    setIsScanningDrive(true);
+    // Fetch photos in this group folder
+    if (user?.accessToken) {
+      const q = `'${group.driveFolderId}' in parents and mimeType contains 'image/' and trashed=false`;
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,description,createdTime,webContentLink)`, {
+        headers: { Authorization: `Bearer ${user.accessToken}` }
+      });
+      const data = await res.json();
+      const drivePosts: Post[] = (data.files || []).map((f: any) => ({
+        id: f.id,
+        userId: user.id,
+        groupId: group.id,
+        imageUrls: [f.webContentLink], // Note: in real app, might need custom proxy for direct display
+        comment: f.description || "",
+        timestamp: new Date(f.createdTime).getTime()
+      }));
+      setPosts(drivePosts);
+    }
     setCurrentPage(Page.MAIN_FEED);
-  };
-
-  const addMemberToFolder = (groupId: string, email: string) => {
-    if (!user) return;
-    const updated = groups.map(g => {
-      if (g.id === groupId) {
-        return { ...g, memberEmails: [...g.memberEmails, email] };
-      }
-      return g;
-    });
-    setGroups(updated);
-    localStorage.setItem(`drive_folders_${user.id}`, JSON.stringify(updated));
-  };
-
-  const deleteGroupFolder = (id: string) => {
-    if (!user) return;
-    const updated = groups.filter(g => g.id !== id);
-    setGroups(updated);
-    localStorage.setItem(`drive_folders_${user.id}`, JSON.stringify(updated));
-    setCurrentPage(Page.GROUP_SELECTION);
+    setIsScanningDrive(false);
   };
 
   return (
@@ -127,25 +185,17 @@ const App: React.FC = () => {
         <MainFeedPage 
           user={user}
           group={currentGroup}
-          posts={posts.filter(p => p.groupId === currentGroup.id)}
+          posts={posts}
           onAddPost={(p) => setPosts([p, ...posts])}
           onDeletePost={(id) => setPosts(posts.filter(p => p.id !== id))}
           onEditPost={(id, comment) => setPosts(posts.map(p => p.id === id ? {...p, comment} : p))}
           onLogout={handleLogout}
           onChangeGroup={() => setCurrentPage(Page.GROUP_SELECTION)}
-          onDeleteGroup={() => deleteGroupFolder(currentGroup.id)}
-          onRenameGroup={(name) => {
-            const updated = groups.map(g => g.id === currentGroup.id ? {...g, name} : g);
-            setGroups(updated);
-            localStorage.setItem(`drive_folders_${user.id}`, JSON.stringify(updated));
-          }}
-          onLeaveGroup={() => deleteGroupFolder(currentGroup.id)}
-          onAddMember={(email) => addMemberToFolder(currentGroup.id, email)}
-          onRemoveMember={(email) => {
-             const updated = groups.map(g => g.id === currentGroup.id ? {...g, memberEmails: g.memberEmails.filter(e => e !== email)} : g);
-             setGroups(updated);
-             localStorage.setItem(`drive_folders_${user.id}`, JSON.stringify(updated));
-          }}
+          onDeleteGroup={() => {}} // Implementation for Drive delete needed
+          onRenameGroup={() => {}} 
+          onLeaveGroup={() => {}}
+          onAddMember={() => {}}
+          onRemoveMember={() => {}}
         />
       )}
     </div>
