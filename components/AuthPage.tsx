@@ -45,41 +45,43 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin, isConfigured, onOpenSetup,
           
           <button 
             onClick={onLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white text-indigo-600 py-4.5 px-6 rounded-2xl font-black shadow-xl hover:scale-[1.02] active:scale-95 transition-all mb-4 text-sm"
+            className="w-full flex items-center justify-center gap-4 bg-white text-indigo-600 py-12 px-6 rounded-[2rem] font-black shadow-2xl hover:scale-[1.02] active:scale-95 transition-all text-xl"
           >
-            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-5 h-5" alt="G" />
-            {isConfigured ? "Sign in with Google" : "Setup Google Project"}
+            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-8 h-8" alt="G" />
+            {isConfigured ? "Sign in" : "Setup Project"}
           </button>
           
           {!isConfigured && (
-            <p className="text-[9px] text-center text-indigo-300 font-bold uppercase tracking-widest animate-pulse">
+            <p className="text-[10px] text-center text-indigo-300 font-bold uppercase tracking-widest animate-pulse mt-4">
               Requires Project Configuration
             </p>
           )}
         </div>
 
-        {canInstall ? (
-          <button 
-            onClick={onInstall}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-500 text-white py-4 px-6 rounded-2xl font-black shadow-lg shadow-indigo-900/20 hover:bg-indigo-400 transition-all active:scale-95"
-          >
-            <Smartphone className="w-5 h-5" />
-            <span className="text-xs uppercase tracking-widest">Install as App</span>
-          </button>
-        ) : (
-          <button 
-            onClick={() => setShowHelp(true)}
-            className="w-full flex items-center justify-center gap-2 text-indigo-200/60 py-2 font-bold hover:text-white transition-colors"
-          >
-            <Info className="w-4 h-4" />
-            <span className="text-[10px] uppercase tracking-widest">How to install on Android?</span>
-          </button>
-        )}
+        <div className="flex flex-col items-center">
+          {canInstall ? (
+            <button 
+              onClick={onInstall}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-500 text-white py-4 px-6 rounded-2xl font-black shadow-lg shadow-indigo-900/20 hover:bg-indigo-400 transition-all active:scale-95"
+            >
+              <Smartphone className="w-5 h-5" />
+              <span className="text-xs uppercase tracking-widest">Install as App</span>
+            </button>
+          ) : (
+            <button 
+              onClick={() => setShowHelp(true)}
+              className="w-full flex items-center justify-center gap-2 text-indigo-200/50 py-1 font-bold hover:text-white transition-colors"
+            >
+              <Info className="w-4 h-4" />
+              <span className="text-[10px] uppercase tracking-widest">How to install?</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      <footer className="absolute bottom-10 flex flex-col items-center gap-4 z-10">
-        <div className="flex items-center gap-2 text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">
-          <Github className="w-4 h-4" />
+      <footer className="absolute bottom-4 flex flex-col items-center z-10">
+        <div className="flex items-center gap-2 text-white/30 text-[9px] font-bold uppercase tracking-[0.2em]">
+          <Github className="w-3 h-3" />
           Production v2.8
         </div>
       </footer>
